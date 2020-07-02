@@ -504,6 +504,25 @@ static CDVWKInAppBrowser* instance = nil;
     BOOL useBeforeLoad = NO;
     NSString* httpMethod = navigationAction.request.HTTPMethod;
     NSString* errorMessage = nil;
+ 
+    NSURLRequest *request = navigationAction.request;
+    if(![request.URL.absoluteString hasPrefix:@"http://"] && ![request.URL.absoluteString hasPrefix:@"https://"]) {
+        if([[UIApplication sharedApplication] canOpenURL:request.URL]) {
+           [[UIApplication sharedApplication] openURL:request.URL];
+           decisionHandler(WKNavigationActionPolicyAllow);
+            
+           if ((self.callbackId != nil) && isTopLevelNavigation) {
+               // Send a loadstart event for each top-level navigation (includes redirects).
+               CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+                                                             messageAsDictionary:@{@"type":@"loadstart", @"url":[url absoluteString]}];
+               [pluginResult setKeepCallback:[NSNumber numberWithBool:YES]];
+               
+               [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
+           }
+        
+           return;
+       }
+    }
     
     if([_beforeload isEqualToString:@"post"]){
         //TODO handle POST requests by preserving POST data then remove this condition
